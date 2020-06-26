@@ -1,20 +1,30 @@
 import React from 'react'
+import MediaButton from './MediaButton'
 import SearchBar from './SearchBar'
+
 import VideoList from './VideoList'
 import VideoDetail from './VideoDetail'
 import youtube from '../apis/youtube'
+
+import ImageList from './ImageList'
+import unsplash from '../apis/unsplash'
+
 
 const KEY = 'AIzaSyCyXkSWYWoSOK_ZFd1BTPkUn94YlNFeEQg'
 
 class App extends React.Component {
 
-    state = { videos: [], selectedVideo: null }
+    state = { media: 'video', videos: [], selectedVideo: null, images: [] }
 
     componentDidMount() {
         this.onTermSubmit('React Tutorial')
     }
 
-    onTermSubmit = async (term) => {
+    onMediaChange = (media) => {
+        this.setState({ media })
+    }
+
+    getVideos = async (term) => {
         const response = await youtube.get('/search', {
             params: {
                 q: term,
@@ -28,14 +38,28 @@ class App extends React.Component {
         this.setState({ videos: response.data.items, selectedVideo: response.data.items[0] })
     }
 
+    getPhotos = async (term) => {
+        const response = await unsplash.get('https://api.unsplash.com/search/photos', {
+            params: { query: term }
+        })
+
+        this.setState({
+            images: response.data.results
+        })
+    }
+
+    onTermSubmit = (term) => {
+        this.getVideos(term)
+        this.getPhotos(term)
+    }
+
     onVideoSelect = (video) => {
         this.setState({ selectedVideo: video })
     }
 
-    render() {
-        return (
-            <div className="ui container">
-                <SearchBar onFormSubmit={this.onTermSubmit} />
+    renderContent = () => {
+        if (this.state.media === 'video') {
+            return (
                 <div className="ui grid">
                     <div className="ui row">
                         <div className="eleven wide column">
@@ -46,6 +70,23 @@ class App extends React.Component {
                         </div>
                     </div>
                 </div>
+            )
+        }
+        else {
+            return (
+                <ImageList images={this.state.images} />
+            )
+        }
+    }
+
+    render() {
+        return (
+            <div className="ui container">
+                <div className="ui segment">
+                    <MediaButton onMediaChange={this.onMediaChange} />
+                    <SearchBar media={this.state.media} onFormSubmit={this.onTermSubmit} />
+                </div>
+                {this.renderContent()}
             </div>
         )
     }
